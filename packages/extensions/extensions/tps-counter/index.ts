@@ -27,7 +27,7 @@ interface Settings {
 export default class TPSCounterExtension implements Extension {
   static metadata = {
     name: 'TPS Counter',
-    version: '1.1.0',
+    version: '1.1.1',
     description: 'Displays tokens per second for agent responses',
     author: 'wladimiiir',
     iconUrl: 'https://raw.githubusercontent.com/hotovo/aider-desk/refs/heads/main/packages/extensions/extensions/tps-counter/icon.png',
