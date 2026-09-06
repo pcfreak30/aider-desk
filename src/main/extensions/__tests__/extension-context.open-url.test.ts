@@ -41,7 +41,9 @@ describe('ExtensionContextImpl.openUrl token redaction', () => {
     // to assert the logged line; openUrlUtil (external/window) is untouched.
     await context.openUrl('http://localhost:4173/?token=super-secret&port=4173', 'modal-overlay');
 
-    expect(logger.info).toHaveBeenCalledWith('[Extension:Review Extension] Opening URL: http://localhost:4173/?token=<hidden>&port=4173 (target: modal-overlay)');
+    expect(logger.info).toHaveBeenCalledWith(
+      '[Extension:Review Extension] Opening URL: http://localhost:4173/?token=<hidden>&port=4173 (target: modal-overlay)',
+    );
     expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('super-secret'));
   });
 
@@ -77,11 +79,7 @@ describe('delegated openUrl token redaction (audit 8d04f2a2 LOW)', () => {
   it('passes the raw, un-redacted URL to the actual dispatch', async () => {
     await openUrlUtil('http://localhost:4173/?token=super-secret', 'external');
 
-    expect(execFileSync).toHaveBeenCalledWith(
-      'xdg-open',
-      [expect.stringContaining('token=super-secret')],
-      expect.objectContaining({ stdio: 'ignore' }),
-    );
+    expect(execFileSync).toHaveBeenCalledWith('xdg-open', [expect.stringContaining('token=super-secret')], expect.objectContaining({ stdio: 'ignore' }));
   });
 });
 
