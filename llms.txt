@@ -252,6 +252,7 @@ src/
       ripgrep.ts
       shell.ts
       web-scrapper.ts
+      window-load-retry.ts
     versions/
       index.ts
       versions-manager.ts
@@ -5576,7 +5577,7 @@ generateSquashCommands(mainBranch: string, branchName: string): string[]
 ⋮----
 generateMergeCommands(mainBranch: string, branchName: string): string[]
 ⋮----
-async gitPull(worktreePath: string): Promise<
+async gitPull(worktreePath: string, rebase?: boolean): Promise<
 ⋮----
 async gitPush(worktreePath: string, force?: boolean): Promise<
 ⋮----
@@ -8353,7 +8354,7 @@ File: src/main/project/project.ts
 import fs from 'fs/promises';
 import path from 'path';
 ⋮----
-import { AgentProfile, CreateTaskParams, DefaultTaskState, ModeDefinition, ProjectSettings, SettingsData, TaskData } from '@common/types';
+import { AgentProfile, BranchInfo, CreateTaskParams, DefaultTaskState, ModeDefinition, ProjectSettings, SettingsData, TaskData } from '@common/types';
 import { fileExists } from '@common/utils';
 import { v4 as uuidv4 } from 'uuid';
 ⋮----
@@ -8497,6 +8498,8 @@ async settingsChanged(oldSettings: SettingsData, newSettings: SettingsData)
 ⋮----
 async projectSettingsChanged(oldSettings: ProjectSettings, newSettings: ProjectSettings)
 ⋮----
+public listBranches(): Promise<BranchInfo[]>
+⋮----
 async close()
 ⋮----
 // Remove watch-files lock file if it exists
@@ -8593,6 +8596,8 @@ import {
   CompactConversationPromptData,
   ConflictResolutionPromptData,
   ConflictResolutionSystemPromptData,
+  GitErrorResolutionPromptData,
+  GitErrorResolutionSystemPromptData,
   HandoffPromptData,
   InitProjectPromptData,
   PromptTemplateData,
@@ -8758,6 +8763,19 @@ export interface ConflictResolutionPromptData {
   theirsPath?: string;
 }
 ⋮----
+export interface GitErrorResolutionSystemPromptData {
+  POWER_TOOL_GROUP_NAME: string;
+  TOOL_GROUP_NAME_SEPARATOR: string;
+  POWER_TOOL_BASH: string;
+  POWER_TOOL_FILE_READ: string;
+  POWER_TOOL_GREP: string;
+}
+⋮----
+export interface GitErrorResolutionPromptData {
+  action: string;
+  error: string;
+}
+⋮----
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface UpdateTaskStateData {
   // Static for now
@@ -8774,6 +8792,8 @@ export type PromptTemplateName =
   | 'task-name'
   | 'conflict-resolution'
   | 'conflict-resolution-system'
+  | 'git-error-resolution'
+  | 'git-error-resolution-system'
   | 'update-task-state'
   | 'handoff'
   | 'code-change-requests';
@@ -9133,6 +9153,8 @@ registerRoutes(router: Router): void
 // Continue worktree rebase
 ⋮----
 // Resolve worktree conflicts with agent
+⋮----
+// Resolve git error with agent
 ⋮----
 // Rename branch (local or worktree)
 ⋮----
@@ -10503,6 +10525,8 @@ import {
   DefaultTaskState,
   EditFormat,
   FileEdit,
+  BranchInfo,
+  GitSyncCommits,
   LogData,
   LogLevel,
   MessageRole,
@@ -10522,6 +10546,7 @@ import {
   TaskStateEmoji,
   TodoItem,
   TokensInfoData,
+  ToolApprovalState,
   ToolCallPart,
   ToolData,
   ToolInputChunkData,
@@ -10554,6 +10579,8 @@ import {
   getSubagentId,
 } from '@common/agent';
 import {
+  POWER_TOOL_BASH,
+  POWER_TOOL_GROUP_NAME,
   SKILLS_TOOL_ACTIVATE_SKILL,
   SKILLS_TOOL_GROUP_NAME,
   SUBAGENTS_TOOL_GROUP_NAME,
@@ -10676,6 +10703,8 @@ private async renameWorktreeBranchIfNeeded(): Promise<void>
    * was in detached HEAD state, where `baseBranch` was never stored.
    */
 private async resolveMissingWorktreeBaseBranch(): Promise<boolean>
+⋮----
+// The task branch itself always contains its base commit - never a valid base branch candidate
 ⋮----
 private isInternal()
 ⋮----
@@ -11392,11 +11421,44 @@ public async getWorktreeIntegrationStatus(targetBranch?: string)
 ⋮----
 public async rebaseWorktreeFromBranch(fromBranch?: string): Promise<void>
 ⋮----
+// Remember the intended source branch before starting so the conflict-resolution
+// flow (continue/abort rebase) can rely on it instead of guessing it from git state
+⋮----
+// The rebase never started, so the pending marker is no longer needed
+⋮----
+// The rebase never started, so the pending marker is no longer needed
+⋮----
+// keep the marker if we cannot determine the rebase state
+⋮----
 public async abortWorktreeRebase(): Promise<void>
 ⋮----
 public async renameBranch(newBranchName: string): Promise<void>
 ⋮----
+public async listGitBranches(includeRemote?: boolean): Promise<BranchInfo[]>
+⋮----
+public async getSyncCommits(targetBranch?: string): Promise<GitSyncCommits>
+⋮----
+public async createGitBranch(name: string, startPoint?: string, checkout?: boolean): Promise<void>
+⋮----
+public async checkoutGitBranch(branch: string, createTracking?: boolean, takeOver?: boolean): Promise<void>
+⋮----
+public async deleteGitBranch(branch: string, force?: boolean): Promise<void>
+⋮----
+public async mergeIntoCurrentBranch(branch: string): Promise<
+⋮----
+public async rebaseOntoBranch(branch: string): Promise<
+⋮----
+public async updateGitBranch(branchName: string): Promise<
+⋮----
+public async gitPull(rebase?: boolean): Promise<
+⋮----
+public async gitPush(force?: boolean): Promise<
+⋮----
+public async renameGitBranch(newBranchName: string): Promise<void>
+⋮----
 public async renameWorktreeBranch(newBranchName: string): Promise<void>
+⋮----
+private async runGitAction<T>(action: string, gitAction: () => Promise<T>, shouldSkipLogging?: (error: unknown) => boolean): Promise<T>
 ⋮----
 private async executeConflictResolution(directoryPath: string, directoryName: string): Promise<void>
 ⋮----
@@ -11423,6 +11485,10 @@ public async resolveConflictsWithAgent(): Promise<void>
 // Check main repository
 ⋮----
 // No conflicts found
+⋮----
+public reportGitActionError(action: string, error: unknown): void
+⋮----
+public async resolveGitErrorWithAgent(): Promise<void>
 ⋮----
 public async continueWorktreeRebase(): Promise<void>
 ⋮----
@@ -12375,6 +12441,39 @@ private htmlToMarkDown(content: string): string
 export const scrapeWeb = async (url: string, timeout: number = 60000, abortSignal?: AbortSignal, format: WebScrapeFormat = 'markdown') =>
 
 ================
+File: src/main/utils/window-load-retry.ts
+================
+import { delay } from '@common/utils';
+⋮----
+import logger from '@/logger';
+⋮----
+// Chromium network error codes that indicate transient failures where a retry can succeed
+enum TransientLoadErrorCode {
+  NetworkChanged = -21,
+  ConnectionReset = -101,
+  ConnectionRefused = -102,
+  NameNotResolved = -105,
+  InternetDisconnected = -106,
+  TimedOut = -118,
+}
+⋮----
+interface LoadRetryOptions {
+  load: () => void | Promise<void>;
+  isDestroyed: () => boolean;
+  maxRetries?: number;
+  baseDelayMs?: number;
+}
+⋮----
+export interface LoadRetryHandler {
+  onDidFailLoad: (errorCode: number, isMainFrame: boolean, validatedURL?: string) => Promise<void>;
+  reset: () => void;
+}
+⋮----
+export const createLoadRetryHandler = (
+⋮----
+const onDidFailLoad = async (errorCode: number, isMainFrame: boolean, validatedURL?: string): Promise<void> =>
+
+================
 File: src/main/versions/index.ts
 ================
 
@@ -12720,6 +12819,8 @@ getTerminalForTask(taskId: string): string | null
 ⋮----
 getTerminalsForTask(taskId: string):
 ⋮----
+private getTaskOrThrow(baseDir: string, taskId: string)
+⋮----
 async mergeWorktreeToMain(baseDir: string, taskId: string, squash: boolean, targetBranch?: string, commitMessage?: string): Promise<void>
 ⋮----
 async switchToLocalWorkingMode(
@@ -12754,27 +12855,27 @@ async commitChanges(baseDir: string, taskId: string, message: string, amend: boo
 ⋮----
 cancelCommitChanges(baseDir: string, taskId: string): void
 ⋮----
-async listBranches(projectDir: string): Promise<Array<
+async listBranches(baseDir: string): Promise<BranchInfo[]>
 ⋮----
-async listGitBranches(repoPath: string, includeRemote?: boolean): Promise<BranchInfo[]>
+async listGitBranches(baseDir: string, taskId: string, includeRemote?: boolean): Promise<BranchInfo[]>
 ⋮----
-async getSyncCommits(repoPath: string, targetBranch?: string): Promise<GitSyncCommits>
+async getSyncCommits(baseDir: string, taskId: string, targetBranch?: string): Promise<GitSyncCommits>
 ⋮----
-async createGitBranch(repoPath: string, name: string, startPoint?: string, checkout?: boolean): Promise<void>
+async createGitBranch(baseDir: string, taskId: string, name: string, startPoint?: string, checkout?: boolean): Promise<void>
 ⋮----
-async checkoutGitBranch(repoPath: string, branch: string, createTracking?: boolean, takeOver?: boolean): Promise<void>
+async checkoutGitBranch(baseDir: string, taskId: string, branch: string, createTracking?: boolean, takeOver?: boolean): Promise<void>
 ⋮----
-async deleteGitBranch(repoPath: string, branch: string, force?: boolean): Promise<void>
+async deleteGitBranch(baseDir: string, taskId: string, branch: string, force?: boolean): Promise<void>
 ⋮----
-async mergeIntoCurrentBranch(repoPath: string, branch: string): Promise<
+async mergeIntoCurrentBranch(baseDir: string, taskId: string, branch: string): Promise<
 ⋮----
-async rebaseOntoBranch(repoPath: string, branch: string): Promise<
+async rebaseOntoBranch(baseDir: string, taskId: string, branch: string): Promise<
 ⋮----
-async updateGitBranch(repoPath: string, branchName: string): Promise<
+async updateGitBranch(baseDir: string, taskId: string, branchName: string): Promise<
 ⋮----
-async gitPull(repoPath: string): Promise<
+async gitPull(baseDir: string, taskId: string, rebase?: boolean): Promise<
 ⋮----
-async gitPush(repoPath: string, force?: boolean): Promise<
+async gitPush(baseDir: string, taskId: string, force?: boolean): Promise<
 ⋮----
 async getWorktreeIntegrationStatus(baseDir: string, taskId: string, targetBranch?: string)
 ⋮----
@@ -12785,6 +12886,8 @@ async abortWorktreeRebase(baseDir: string, taskId: string): Promise<void>
 async continueWorktreeRebase(baseDir: string, taskId: string): Promise<void>
 ⋮----
 async resolveConflictsWithAgent(baseDir: string, taskId: string): Promise<void>
+⋮----
+async resolveGitErrorWithAgent(baseDir: string, taskId: string): Promise<void>
 ⋮----
 async renameGitBranch(baseDir: string, taskId: string, newBranchName: string): Promise<void>
 ⋮----
@@ -12984,7 +13087,7 @@ import { performStartUp, UpdateProgressData } from '@/start-up';
 import { Store } from '@/store';
 import logger, { eventTransport } from '@/logger';
 import { initManagers } from '@/managers';
-import { getDefaultProjectSettings, initPath } from '@/utils';
+import { createLoadRetryHandler, getDefaultProjectSettings, initPath } from '@/utils';
 import { WindowManager } from '@/window-manager';
 ⋮----
 // Global instances shared across all windows
@@ -13005,6 +13108,9 @@ const initWindow = async (windowMgr: WindowManager, storeInstance: Store, projec
 ⋮----
 // Register window with window manager
 ⋮----
+// Retry transient network failures (e.g. ERR_NETWORK_CHANGED during dev server loading)
+// so a network change doesn't leave a blank white window
+⋮----
 const saveWindowState = (): void =>
 ⋮----
 // Only save state if this is the main window
@@ -13016,7 +13122,11 @@ const saveWindowState = (): void =>
 ⋮----
 // For HashRouter, query params must come after the hash: #/home?project=...
 ⋮----
+// transient failures (e.g. ERR_NETWORK_CHANGED) are retried by the did-fail-load handler
+⋮----
 // For production with HashRouter, append hash with query params
+⋮----
+// transient failures (e.g. ERR_NETWORK_CHANGED) are retried by the did-fail-load handler
 ⋮----
 // Apply saved zoom level
 ⋮----
@@ -14383,25 +14493,27 @@ async saveFile(baseDir: string, taskId: string, filePath: string, content: strin
 ⋮----
 listBranches(baseDir: string): Promise<Array<
 ⋮----
-listGitBranches(repoPath: string, includeRemote?: boolean): Promise<BranchInfo[]>
+listGitBranches(baseDir: string, taskId: string, includeRemote?: boolean): Promise<BranchInfo[]>
 ⋮----
-getSyncCommits(repoPath: string, targetBranch?: string): Promise<GitSyncCommits>
+getSyncCommits(baseDir: string, taskId: string, targetBranch?: string): Promise<GitSyncCommits>
 ⋮----
-async createGitBranch(repoPath: string, name: string, startPoint?: string, checkout?: boolean): Promise<void>
+async createGitBranch(baseDir: string, taskId: string, name: string, startPoint?: string, checkout?: boolean): Promise<void>
 ⋮----
-async checkoutGitBranch(repoPath: string, branch: string, createTracking?: boolean, takeOver?: boolean): Promise<void>
+async checkoutGitBranch(baseDir: string, taskId: string, branch: string, createTracking?: boolean, takeOver?: boolean): Promise<void>
 ⋮----
-async deleteGitBranch(repoPath: string, branch: string, force?: boolean): Promise<void>
+async deleteGitBranch(baseDir: string, taskId: string, branch: string, force?: boolean): Promise<void>
 ⋮----
-mergeIntoCurrentBranch(repoPath: string, branch: string): Promise<
+mergeIntoCurrentBranch(baseDir: string, taskId: string, branch: string): Promise<
 ⋮----
-rebaseOntoBranch(repoPath: string, branch: string): Promise<
+rebaseOntoBranch(baseDir: string, taskId: string, branch: string): Promise<
 ⋮----
-updateGitBranch(repoPath: string, branchName: string): Promise<
+updateGitBranch(baseDir: string, taskId: string, branchName: string): Promise<
 ⋮----
-gitPull(repoPath: string): Promise<
+gitPull(baseDir: string, taskId: string, rebase?: boolean): Promise<
 ⋮----
-gitPush(repoPath: string, force?: boolean): Promise<
+gitPush(baseDir: string, taskId: string, force?: boolean): Promise<
+⋮----
+resolveGitErrorWithAgent(baseDir: string, taskId: string): Promise<void>
 ⋮----
 getWorktreeIntegrationStatus(baseDir: string, taskId: string, targetBranch?: string): Promise<WorktreeIntegrationStatus>
 ⋮----
@@ -17308,6 +17420,7 @@ import { CopyMessageButton } from './CopyMessageButton';
 import { MessageActions } from './MessageActions';
 ⋮----
 import { IconButton } from '@/components/common/IconButton';
+import { removeMessageActionId } from '@/stores/taskStore';
 ⋮----
 type Props = {
   baseDir: string;
@@ -17316,6 +17429,7 @@ type Props = {
   onRemove?: () => void;
   compact?: boolean;
   onInterrupt?: () => void;
+  removeActionId?: (actionId: string) => void;
 };
 ⋮----
 const renderMessage = () => (
@@ -17346,6 +17460,7 @@ type Props = {
   baseDir: string;
   taskId: string;
   onInterrupt?: () => void;
+  removeActionId?: (actionId: string) => void;
 };
 ⋮----
 const handleAbortRebase = () =>
@@ -17353,6 +17468,8 @@ const handleAbortRebase = () =>
 const handleContinueRebase = () =>
 ⋮----
 const handleResolveConflictsWithAgent = () =>
+⋮----
+const handleResolveGitErrorWithAgent = () =>
 ⋮----
 const handleRebaseWorktree = () =>
 ⋮----
@@ -20941,18 +21058,28 @@ import { IoGitBranch } from 'react-icons/io5';
 import { VscWorktreeSmall } from 'react-icons/vsc';
 import { MdKeyboardArrowDown } from 'react-icons/md';
 import { useTranslation } from 'react-i18next';
+import { useHotkeys } from 'react-hotkeys-hook';
+import { useLocalStorage } from '@reactuses/core';
 import { BranchInfo, GitSyncCommits, WorktreeIntegrationStatus } from '@common/types';
 ⋮----
 import { useApi } from '@/contexts/ApiContext';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import { useConfiguredHotkeys } from '@/hooks/useConfiguredHotkeys';
+import { invokeAction, registerAction, unregisterAction } from '@/stores/actionsStore';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Checkbox } from '@/components/common/Checkbox';
+import { RadioButton } from '@/components/common/RadioButton';
 import { InlineEditPanel } from '@/components/common/InlineEditPanel';
 import { WorktreeActionDialog } from '@/components/project/WorktreeActionDialog';
 import { GitStatusBadges } from '@/components/project/GitStatusBadges';
 import { GitBranchesPopup } from '@/components/project/GitBranchesPopup';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { showErrorNotification, showInfoNotification } from '@/utils/notifications';
+⋮----
+enum PullStrategy {
+  Merge = 'merge',
+  Rebase = 'rebase',
+}
 ⋮----
 const slugifyBranchName = (name: string) =>
 ⋮----
@@ -20966,6 +21093,7 @@ const buildCommitsTooltip = (label: string, commits: string[]) =>
 ⋮----
 type Props = {
   baseDir: string;
+  taskId: string;
   worktreePath?: string;
   status?: WorktreeIntegrationStatus | null;
   taskName?: string;
@@ -20986,11 +21114,12 @@ type Props = {
   canResolveConflictsWithAgent?: boolean;
 };
 ⋮----
-const handleError = (error: unknown) =>
+const refreshOnVisible = () =>
+⋮----
+// The error is already logged to the task chat by the backend with a 'Resolve with AI' action
+// eslint-disable-next-line no-console
 ⋮----
 const handleToggle = () =>
-⋮----
-const handleCloseDropdown = () =>
 ⋮----
 const handleCreateBranchConfirm = async () =>
 ⋮----
@@ -21020,23 +21149,19 @@ const handleDelete = (branch: BranchInfo) =>
 ⋮----
 const handleDeleteConfirm = async () =>
 ⋮----
-const handlePull = async () =>
+const handlePullConfirm = () =>
+⋮----
+const handlePullStrategyChange = (value: string) =>
 ⋮----
 const handleUpdateBranch = async (branch: BranchInfo) =>
-⋮----
-const handlePush = () =>
 ⋮----
 const handlePushConfirm = async () =>
 ⋮----
 const handlePushCancel = () =>
 ⋮----
-const handleEditBranch = () =>
-⋮----
 const handleBranchEditConfirm = async () =>
 ⋮----
 const handleBranchEditCancel = () =>
-⋮----
-const handleShowWorktreeDialog = (dialogSetter: (value: boolean) => void) =>
 ⋮----
 const handleSwitchToLocal = () =>
 ⋮----
@@ -21050,6 +21175,8 @@ onClick=
 ⋮----
 content=
 ⋮----
+handleCloseDropdown();
+if (rebaseBranch)
 onRebaseFromBranch(rebaseBranch);
 ⋮----
 title=
@@ -21073,6 +21200,10 @@ onContinueRebase();
 ⋮----
 setShowResolveWithAgentConfirm(false);
 onResolveConflictsWithAgent();
+⋮----
+confirmButtonText=
+⋮----
+label=
 
 ================
 File: src/renderer/src/components/project/GitBranchesPopup.tsx
@@ -26793,6 +26924,7 @@ File: src/renderer/src/hooks/useTaskLogHandlers.ts
 import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
+import { isLogMessage } from '@common/types';
 ⋮----
 import type { LogData, LogMessage, LoadingMessage, Message } from '@common/types';
 ⋮----
@@ -28446,7 +28578,7 @@ export const useTaskAutocompletionWords = (taskDir: string | undefined)
 File: src/renderer/src/stores/taskStore.ts
 ================
 import { useShallow } from 'zustand/react/shallow';
-import { ContextFile, ModelsData, QueuedPromptData, QuestionData, TodoItem, TokensInfoData, Message } from '@common/types';
+import { ContextFile, ModelsData, QueuedPromptData, QuestionData, TodoItem, TokensInfoData, Message, isLogMessage, isLoadingMessage } from '@common/types';
 import { createWithEqualityFn } from 'zustand/traditional';
 import { shallow } from 'zustand/vanilla/shallow';
 import { devtools } from 'zustand/middleware';
@@ -28486,6 +28618,8 @@ interface TaskStore {
 export const updateTaskState = (taskId: string, updates: Partial<TaskState>)
 ⋮----
 export const setMessages = (taskId: string, updateMessages: (prev: Message[])
+⋮----
+export const removeMessageActionId = (taskId: string, messageId: string, actionId: string)
 ⋮----
 export const setTodoItems = (taskId: string, updateTodoItems: (prev: TodoItem[])
 ⋮----
