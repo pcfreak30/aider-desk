@@ -12,6 +12,8 @@ import { clsx } from 'clsx';
 
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { getTaskStateLabel } from '@/components/common/TaskStateChip';
+import { showInfoNotification, showWarningNotification } from '@/utils/notifications';
+import { useOptionalApi } from '@/contexts/ApiContext';
 
 type Props = {
   task: TaskData;
@@ -46,6 +48,7 @@ export const TaskMenuButton = memo(
     isPinned,
   }: Props) => {
     const { t } = useTranslation();
+    const api = useOptionalApi();
     const isNewTask = !task.createdAt;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isStateSubmenuOpen, setIsStateSubmenuOpen] = useState(false);
@@ -108,6 +111,23 @@ export const TaskMenuButton = memo(
     const handleCopyAsMarkdownClick = (e: MouseEvent) => {
       e.stopPropagation();
       onCopyAsMarkdown?.();
+      setIsMenuOpen(false);
+    };
+
+    const handleCopyTaskIdClick = async (e: MouseEvent) => {
+      e.stopPropagation();
+      try {
+        if (api) {
+          await api.writeToClipboard(task.id);
+        } else {
+          await navigator.clipboard.writeText(task.id);
+        }
+        showInfoNotification(t('taskSidebar.taskIdCopied', { taskId: task.id }));
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to copy task id:', error);
+        showWarningNotification(t('taskSidebar.copyTaskIdFailed'));
+      }
       setIsMenuOpen(false);
     };
 
@@ -217,6 +237,13 @@ export const TaskMenuButton = memo(
                     <span className="whitespace-nowrap">{t('taskSidebar.copyAsMarkdown')}</span>
                   </li>
                 )}
+                <li
+                  className="flex items-center gap-2 px-2 py-1 text-2xs text-text-primary hover:bg-bg-tertiary cursor-pointer transition-colors"
+                  onClick={handleCopyTaskIdClick}
+                >
+                  <BiCopy className="w-4 h-4" />
+                  <span className="whitespace-nowrap">{t('taskSidebar.copyTaskId')}</span>
+                </li>
                 {onExportToMarkdown && (
                   <li
                     className="flex items-center gap-2 px-2 py-1 text-2xs text-text-primary hover:bg-bg-tertiary cursor-pointer transition-colors"

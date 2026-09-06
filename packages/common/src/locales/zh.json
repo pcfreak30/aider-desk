@@ -1888,6 +1888,8 @@
     "untitled": "[未命名]",
     "exportAsMarkdown": "导出为 Markdown",
     "copyAsMarkdown": "复制为 Markdown",
+    "copyTaskId": "复制任务 ID",
+    "copyTaskIdFailed": "复制任务 ID 失败",
     "copiedAsMarkdown": "已复制为 Markdown",
     "exportAsImage": "导出为图片",
     "taskIdCopied": "任务 ID {{taskId}} 已复制到剪贴板",

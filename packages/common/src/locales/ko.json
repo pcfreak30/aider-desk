@@ -1848,6 +1848,8 @@
     "untitled": "[제목 없음]",
     "exportAsMarkdown": "마크다운으로 내보내기",
     "copyAsMarkdown": "마크다운으로 복사",
+    "copyTaskId": "작업 ID 복사",
+    "copyTaskIdFailed": "작업 ID 복사 실패",
     "copiedAsMarkdown": "마크다운으로 복사됨",
     "exportAsImage": "이미지로 내보내기",
     "taskIdCopied": "작업 ID {{taskId}}이(가) 클립보드에 복사되었습니다",

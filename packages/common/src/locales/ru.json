@@ -1870,6 +1870,8 @@
     "untitled": "[Без названия]",
     "exportAsMarkdown": "Экспортировать как Markdown",
     "copyAsMarkdown": "Копировать как Markdown",
+    "copyTaskId": "Копировать ID задачи",
+    "copyTaskIdFailed": "Не удалось скопировать ID задачи",
     "copiedAsMarkdown": "Скопировано как Markdown",
     "exportAsImage": "Экспортировать как изображение",
     "taskIdCopied": "Идентификатор задачи {{taskId}} скопирован в буфер обмена",

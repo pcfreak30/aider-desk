@@ -1880,6 +1880,8 @@
     "untitled": "[Untitled]",
     "exportAsMarkdown": "Export as markdown",
     "copyAsMarkdown": "Copy as markdown",
+    "copyTaskId": "Copy task id",
+    "copyTaskIdFailed": "Failed to copy task id",
     "copiedAsMarkdown": "Copied as Markdown",
     "exportAsImage": "Export as image",
     "taskIdCopied": "Task ID {{taskId}} copied to clipboard",
