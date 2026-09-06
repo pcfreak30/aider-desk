@@ -1743,7 +1743,9 @@ describe('ExtensionManager', () => {
       (mockRegistry as { getExtensions: unknown }).getExtensions = vi
         .fn()
         .mockReturnValue([
-          makeExtension('onPromptStarted', (context) => seen.push((context as { getProjectContext: () => { getSkillContext: () => unknown } }).getProjectContext().getSkillContext())),
+          makeExtension('onPromptStarted', (context) =>
+            seen.push((context as { getProjectContext: () => { getSkillContext: () => unknown } }).getProjectContext().getSkillContext()),
+          ),
         ]);
 
       const event = { prompt: 'p', mode: 'agent' as const, promptContext: { id: '1' } };
