@@ -798,7 +798,7 @@ const PROVIDER_ID = 'openai-codex';
 export default class OpenAICodexAuthExtension implements Extension {
   static metadata = {
     name: 'OpenAI Codex Auth',
-    version: '2.0.0',
+    version: '1.1.0',
     description: 'OpenAI Codex provider using ChatGPT Plus/Pro OAuth authentication with a dedicated sign-in UI (browser or device code)',
     iconUrl: 'https://raw.githubusercontent.com/hotovo/aider-desk/refs/heads/main/packages/extensions/extensions/openai-codex/icon.png',
     author: 'wladimiiir',
