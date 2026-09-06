@@ -255,10 +255,10 @@ export class BrowserApi implements ApplicationAPI {
       const { type, data } = eventData;
       const eventType = type as keyof EventDataMap;
 
-      // Suppress redelivered notifications (reconnect re-subscription / duplicate broadcast) by stable id.
-      // Runs BEFORE the listener-exists check so a notification delivered while no `notification`
-      // listener is registered still records its id — otherwise it could be redelivered later
-      // (e.g., after fix-up/re-subscription) and play twice.
+      // Suppress redelivered notifications (reconnect re-subscription / duplicate broadcast) by
+      // per-project (baseDir + id) key. Runs BEFORE the listener-exists check so a notification
+      // delivered while no `notification` listener is registered still records its id — otherwise
+      // it could be redelivered later (e.g., after fix-up/re-subscription) and play twice.
       if (eventType === 'notification' && this.notificationDeduplicator.isDuplicate(data)) {
         return;
       }

@@ -35,8 +35,8 @@ const emitEvent = (type: string, data: unknown) => {
   handler({ type, data });
 };
 
-const makeNotification = (id: string): NotificationData => ({
-  baseDir: '/test/project',
+const makeNotification = (id: string, baseDir = '/test/project'): NotificationData => ({
+  baseDir,
   title: 'Task finished',
   body: 'all done',
   id,
@@ -95,6 +95,27 @@ describe('BrowserApi - notification deduplication wiring', () => {
     emitEvent('notification', idlePayload);
 
     expect(callback).toHaveBeenCalledTimes(2);
+  });
+
+  it('delivers identical ids from different projects independently (no cross-project suppression)', () => {
+    const callbackA = vi.fn();
+    const callbackB = vi.fn();
+    browserApi.addNotificationListener('/test/project', callbackA);
+    browserApi.addNotificationListener('/test/other-project', callbackB);
+
+    // Same id delivered to two different projects
+    emitEvent('notification', makeNotification('shared-id', '/test/project'));
+    emitEvent('notification', makeNotification('shared-id', '/test/other-project'));
+
+    expect(callbackA).toHaveBeenCalledTimes(1);
+    expect(callbackB).toHaveBeenCalledTimes(1);
+
+    // Redelivery within each project is still suppressed by (baseDir, id)
+    emitEvent('notification', makeNotification('shared-id', '/test/project'));
+    emitEvent('notification', makeNotification('shared-id', '/test/other-project'));
+
+    expect(callbackA).toHaveBeenCalledTimes(1);
+    expect(callbackB).toHaveBeenCalledTimes(1);
   });
 
   it('never suppresses malformed wire payloads (no throw aborts dispatch)', () => {

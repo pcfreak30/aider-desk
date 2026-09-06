@@ -59,7 +59,7 @@ Events with a `blocked?: boolean` field allow extensions to **block** the operat
 
 | Capability | Events |
 |---|---|
-| **Can Block** (have `blocked?` field) | `PromptStartedEvent`, `AgentStartedEvent`, `InterruptedEvent`, `ToolApprovalEvent`, `ToolCalledEvent`, `HandleApprovalEvent`, `SubagentStartedEvent`, `CommandExecutedEvent`, `CustomCommandExecutedEvent`, `AiderPromptStartedEvent`, `BeforeCommitEvent`, `TaskDeletedEvent`, `NotificationEvent` |
+| **Can Block** (have `blocked?` field) | `PromptStartedEvent`, `AgentStartedEvent`, `InterruptedEvent`, `ToolApprovalEvent`, `HandleApprovalEvent`, `SubagentStartedEvent`, `CommandExecutedEvent`, `CustomCommandExecutedEvent`, `AiderPromptStartedEvent`, `BeforeCommitEvent`, `TaskDeletedEvent`, `NotificationEvent` |
 | **Read-Only** (all fields `readonly`) | `TaskInitializedEvent`, `TaskClosedEvent`, `ProjectStartedEvent`, `ProjectStoppedEvent`, `AfterCommitEvent` |
 
 ---

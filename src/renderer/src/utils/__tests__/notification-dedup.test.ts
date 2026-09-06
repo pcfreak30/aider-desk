@@ -48,6 +48,39 @@ describe('notification-dedup', () => {
     expect(deduplicator.isDuplicate({ id: 'n-2' })).toBe(false);
   });
 
+  it('isolates identical ids across different projects (per baseDir + id key)', () => {
+    const deduplicator = createNotificationDeduplicator();
+
+    // First project sees the id
+    expect(deduplicator.isDuplicate({ baseDir: '/projects/a', id: 'n-1' })).toBe(false);
+    // A different project with the same id must NOT be suppressed
+    expect(deduplicator.isDuplicate({ baseDir: '/projects/b', id: 'n-1' })).toBe(false);
+
+    // Redelivery within each project is still suppressed
+    expect(deduplicator.isDuplicate({ baseDir: '/projects/a', id: 'n-1' })).toBe(true);
+    expect(deduplicator.isDuplicate({ baseDir: '/projects/b', id: 'n-1' })).toBe(true);
+
+    // A third project with the same id is still fresh
+    expect(deduplicator.isDuplicate({ baseDir: '/projects/c', id: 'n-1' })).toBe(false);
+  });
+
+  it('treats a differing baseDir as a different dedup key even when ids collide', () => {
+    const deduplicator = createNotificationDeduplicator();
+
+    deduplicator.isDuplicate({ baseDir: '/projects/a', id: 'shared' });
+    expect(deduplicator.isDuplicate({ baseDir: '/projects/ab', id: 'shared' })).toBe(false);
+    expect(deduplicator.isDuplicate({ baseDir: '/projects/ab2', id: 'shared' })).toBe(false);
+  });
+
+  it('falls back to the id-only key when baseDir is absent or malformed', () => {
+    const deduplicator = createNotificationDeduplicator();
+
+    expect(deduplicator.isDuplicate({ id: 'n-1' })).toBe(false);
+    expect(deduplicator.isDuplicate({ id: 'n-1' })).toBe(true);
+    expect(deduplicator.isDuplicate({ baseDir: 42 as unknown as string, id: 'n-2' })).toBe(false);
+    expect(deduplicator.isDuplicate({ baseDir: 42 as unknown as string, id: 'n-2' })).toBe(true);
+  });
+
   it('allows the same id again after the dedup window elapses', () => {
     const now = Date.now();
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(now);

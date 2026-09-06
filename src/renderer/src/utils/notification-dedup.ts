@@ -8,6 +8,10 @@
  * (plus `timestamp`), which this utility uses to suppress redeliveries
  * within a bounded window, so each notification sound/alert plays once.
  *
+ * The dedup key combines the notification's `baseDir` with its `id`, so
+ * notifications from different projects that happen to carry the same `id`
+ * never suppress each other.
+ *
  * Notifications without an `id` (produced by older servers) are never
  * considered duplicates to preserve backward compatibility.
  */
@@ -19,8 +23,8 @@ export type NotificationDedupInput = unknown;
 
 export interface NotificationDeduplicator {
   /**
-   * Returns true if a notification with the same `id` was already seen within
-   * the dedup window. Records the id on first sight.
+   * Returns true if a notification with the same project `baseDir` + `id` pair
+   * was already seen within the dedup window. Records the pair on first sight.
    *
    * Parameter is `unknown` because callers feed raw, untrusted wire data; unknown,
    * malformed, or nullish payloads are never duplicates and must
@@ -59,18 +63,23 @@ export const createNotificationDeduplicator = (
         return false;
       }
 
+      // Include baseDir in the dedup key so identical ids from different projects
+      // stay independent (the browser client is a global event bus for all projects).
+      const baseDir = (notification as { baseDir?: unknown }).baseDir;
+      const key = typeof baseDir === 'string' && baseDir ? `${baseDir}:${id}` : id;
+
       const now = Date.now();
       evictExpired(now);
 
-      if (seen.has(id)) {
+      if (seen.has(key)) {
         return true;
       }
 
-      seen.set(id, now);
+      seen.set(key, now);
       if (seen.size > maxTrackedIds) {
-        const oldestId = seen.keys().next().value;
-        if (oldestId !== undefined) {
-          seen.delete(oldestId);
+        const oldestKey = seen.keys().next().value;
+        if (oldestKey !== undefined) {
+          seen.delete(oldestKey);
         }
       }
 
